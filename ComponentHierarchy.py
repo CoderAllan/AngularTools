@@ -4,12 +4,6 @@ import os.path
 import re
 
 class Component:
-    TsFilename = "",
-    TemplateFilename = "",
-    Selector = "",
-    SubComponents = [],
-    IsRoot = True
-
     def __init__(self, tsFilename: str, templateFilename: str, selector: str, subcomponents: list, isRoot: bool):
         self.TsFilename = tsFilename
         self.TemplateFilename = templateFilename
@@ -20,12 +14,12 @@ class Component:
 def DisplayComponent(subComponents: list, selector: str, indent: int):
     indentation = " " * (indent * 3)
     if (len(subComponents) == 0):
-        print(indentation + "<" + selector + "></" + selector + ">")
+        print(f"{indentation}<{selector}></{selector}>")
     else:
-        print(indentation + "<" + selector + ">")
+        print(f"{indentation}<{selector}>")
         for subComponent in subComponents:
             DisplayComponent(subComponent.SubComponents, subComponent.Selector, indent+1)
-        print(indentation + "</" + selector + ">")
+        print(f"{indentation}</{selector}>")
 
 # find all files recursively under the current folder that ends with *.component.ts
 components = [os.path.join(dp, f) for dp, dn, filenames in os.walk(".") for f in filenames if f.endswith(".component.ts")]
@@ -58,7 +52,7 @@ for selector1 in compHash:
     f = open(compHash[selector1].TemplateFilename)
     template = f.read() # We read the entire template file 
     for selector2 in compHash: # then we check if the template contains each of the selectors we found in the components
-        pattern = "</" + selector2 + ">"
+        pattern = f"</{selector2}>"
         index = template.find(pattern)
         if index >= 0:
             compHash[selector1].SubComponents.append(compHash[selector2])
@@ -67,7 +61,7 @@ for selector1 in compHash:
 
 for selector in compHash:
     if compHash[selector].IsRoot == True:
-        print("Found root: " + selector)
+        print(f"Found root: {selector}")
         DisplayComponent(compHash[selector].SubComponents, selector, 0)
         print()
 
