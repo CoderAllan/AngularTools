@@ -7,7 +7,7 @@ from tinycss2.parser import parse_stylesheet
 from tinycss2.tokenizer import IdentToken, LiteralToken, WhitespaceToken
 
 # TODO: Change the variable to the folder with your project
-rootDir = r'C:\MyAngularProject'
+rootDir = r'C:\Users\Allan\Source\Workspaces\DSS\Smart Production\DAAA\OM-Cockpit\Main\WebApp\ClientApp2'
 
 def GetSelectorsFromRule(rule: list):
   selectorFound = False

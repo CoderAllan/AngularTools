@@ -13,6 +13,8 @@ class Component:
 
 def DisplayComponent(subComponents: list, selector: str, indent: int):
     indentation = " " * (indent * 3)
+    if indent > 10:
+        return
     if (len(subComponents) == 0):
         print(f"{indentation}<{selector}></{selector}>")
     else:

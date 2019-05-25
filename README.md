@@ -1,4 +1,4 @@
-# AngularTools
+# AngularTools ![GitHub top language](https://img.shields.io/github/languages/top/CoderAllan/AngularTools.svg) ![GitHub](https://img.shields.io/github/license/CoderAllan/AngularTools.svg) ![GitHub last commit](https://img.shields.io/github/last-commit/CoderAllan/AngularTools.svg)
 
 This is supposed to be a collection of tools for helping developing Angular projects.
 
