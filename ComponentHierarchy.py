@@ -28,27 +28,28 @@ components = [os.path.join(dp, f) for dp, dn, filenames in os.walk(".") for f in
 compHash = {}
 
 for component in components:
-    componentDefinitionFound = False
-    currentComponent = Component(component, "", "", [], True)
-    f = open(component)
-    line = f.readline()
-    while line:
-        match = re.match(r"@Component\({", line)
-        if match:
-            componentDefinitionFound = True
-        if componentDefinitionFound:
-            match = re.match(r".*templateUrl:.+/(.+)'", line, re.IGNORECASE)
-            if match:
-                currentComponent.TemplateFilename = os.path.join(os.path.dirname(component), match.group(1))
-            match = re.match(r".*selector:.+'(.+)'", line, re.IGNORECASE)
-            if match:
-                currentComponent.Selector = match.group(1)
-            match = re.match(r"}\)", line) # Have we reached the end of the component definition?
-            if match:
-                break # If we did find the end, then stop reading
+    if "node_modules" not in component:
+        componentDefinitionFound = False
+        currentComponent = Component(component, "", "", [], True)
+        f = open(component)
         line = f.readline()
-    f.close()
-    compHash[currentComponent.Selector] = currentComponent
+        while line:
+            match = re.match(r"@Component\({", line)
+            if match:
+                componentDefinitionFound = True
+            if componentDefinitionFound:
+                match = re.match(r".*templateUrl:.+/(.+)'", line, re.IGNORECASE)
+                if match:
+                    currentComponent.TemplateFilename = os.path.join(os.path.dirname(component), match.group(1))
+                match = re.match(r".*selector:.+'(.+)'", line, re.IGNORECASE)
+                if match:
+                    currentComponent.Selector = match.group(1)
+                match = re.match(r"}\)", line) # Have we reached the end of the component definition?
+                if match:
+                    break # If we did find the end, then stop reading
+            line = f.readline()
+        f.close()
+        compHash[currentComponent.Selector] = currentComponent
 
 for selector1 in compHash:
     f = open(compHash[selector1].TemplateFilename)
