@@ -13,7 +13,7 @@ class Component:
 
 def DisplayComponent(subComponents: list, selector: str, indent: int):
     indentation = " " * (indent * 3)
-    if indent > 10:
+    if indent > 10: # detect recursive components. Can this be done more elegantly?
         return
     if (len(subComponents) == 0):
         print(f"{indentation}<{selector}></{selector}>")
@@ -43,7 +43,10 @@ for component in components:
                     currentComponent.TemplateFilename = os.path.join(os.path.dirname(component), match.group(1))
                 match = re.match(r".*selector:.+'(.+)'", line, re.IGNORECASE)
                 if match:
-                    currentComponent.Selector = match.group(1)
+                    currentSelector = match.group(1)
+                    currentSelector = currentSelector.replace("[", "")
+                    currentSelector = currentSelector.replace("]", "")
+                    currentComponent.Selector = currentSelector
                 match = re.match(r"}\)", line) # Have we reached the end of the component definition?
                 if match:
                     break # If we did find the end, then stop reading
@@ -60,6 +63,12 @@ for selector1 in compHash:
         if index >= 0:
             compHash[selector1].SubComponents.append(compHash[selector2])
             compHash[selector2].IsRoot = False # If selector2 has been found in a template then it is not root
+        else:
+            pattern = f" {selector2}"
+            index = template.find(pattern)
+            if index >= 0:
+                compHash[selector1].SubComponents.append(compHash[selector2])
+                compHash[selector2].IsRoot = False # If selector2 has been found in a template then it is not root
     f.close()
 
 for selector in compHash:
