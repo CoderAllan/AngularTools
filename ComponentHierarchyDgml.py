@@ -11,17 +11,20 @@ class Component:
         self.SubComponents = subcomponents
         self.IsRoot = isRoot
 
-def GenerateDirectedGraphNodes(components: list, selector: str, isRoot: bool, includeLabel: bool, tagName: str, idAttr: str):
+def GenerateDirectedGraphNodes(components: list, component: Component, isRoot: bool, includeLabel: bool, includeTsFilename: bool, tagName: str, idAttr: str):
     label = ""
-    RootComponentCategory = ""
+    rootComponentCategory = ""
+    tsFilename = ""
     if includeLabel:
-        label = f" Label=\"{selector}\""
+        label = f" Label=\"{component.Selector}\""
     if isRoot:
-        RootComponentCategory = f" Category=\"RootComponent\""
-    output = f"   <{tagName} {idAttr}=\"{selector}\"{RootComponentCategory}{label}/>\n"
+        rootComponentCategory = f" Category=\"RootComponent\""
+    if includeTsFilename:
+        tsFilename = f" ComponentFilename=\"{component.TsFilename}\""
+    output = f"   <{tagName} {idAttr}=\"{component.Selector}\"{tsFilename}{label}{rootComponentCategory}/>\n"
     if (len(components) > 0):
         for subComponent in components:
-            result = GenerateDirectedGraphNodes(subComponent.SubComponents, subComponent.Selector, subComponent.IsRoot, includeLabel, tagName, idAttr)
+            result = GenerateDirectedGraphNodes(subComponent.SubComponents, subComponent, subComponent.IsRoot, includeLabel, includeTsFilename, tagName, idAttr)
             output = f"{output}{result}"
     return output
 
@@ -87,10 +90,11 @@ for selector1 in compHash:
 nodes = ""
 links = ""
 for selector in compHash:
-    if compHash[selector].IsRoot == True:
+    component = compHash[selector]
+    if component.IsRoot == True:
         print(f"Found root: {selector}")
-        nodes = nodes + GenerateDirectedGraphNodes(compHash[selector].SubComponents, selector, True, True, "Node", "Id")
-        links = links + GenerateDirectedGraphLinks(compHash[selector].SubComponents, selector, "", "Link", "Source", "Target")
+        nodes = nodes + GenerateDirectedGraphNodes(component.SubComponents, component, True, False, True, "Node", "Id")
+        links = links + GenerateDirectedGraphLinks(component.SubComponents, selector, "", "Link", "Source", "Target")
         print()
 
 outputFilename = f"ReadMe-ProjectStructure.dgml"
@@ -103,7 +107,10 @@ file.write(
     f"<Links>\n{links}</Links>\n"\
     "<Categories>\n"\
     "  <Category Id=\"RootComponent\" Label=\"Root component\" Background=\"#FF00AA00\" IsTag=\"True\" />\n"\
-    "</Categories>"\
+    "</Categories>\n"\
+    "<Properties>\n"\
+    "  <Property Id=\"ComponentFilename\" DataType=\"System.String\" />\n"\
+    "</Properties>\n"\
     "</DirectedGraph>\n"
 )
 file.close()
