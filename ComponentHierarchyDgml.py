@@ -1,4 +1,4 @@
-# This script generates an overview of the angular component hierachi
+# This script generates an overview of the angular component hierarchy
 import os
 import os.path
 import re
@@ -11,14 +11,17 @@ class Component:
         self.SubComponents = subcomponents
         self.IsRoot = isRoot
 
-def GenerateDirectedGraphNodes(components: list, selector: str, includeLabel: bool, tagName: str, idAttr: str):
+def GenerateDirectedGraphNodes(components: list, selector: str, isRoot: bool, includeLabel: bool, tagName: str, idAttr: str):
     label = ""
+    RootComponentCategory = ""
     if includeLabel:
         label = f" Label=\"{selector}\""
-    output = f"   <{tagName} {idAttr}=\"{selector}\"{label}/>\n"
+    if isRoot:
+        RootComponentCategory = f" Category=\"RootComponent\""
+    output = f"   <{tagName} {idAttr}=\"{selector}\"{RootComponentCategory}{label}/>\n"
     if (len(components) > 0):
         for subComponent in components:
-            result = GenerateDirectedGraphNodes(subComponent.SubComponents, subComponent.Selector, includeLabel, tagName, idAttr)
+            result = GenerateDirectedGraphNodes(subComponent.SubComponents, subComponent.Selector, subComponent.IsRoot, includeLabel, tagName, idAttr)
             output = f"{output}{result}"
     return output
 
@@ -31,15 +34,6 @@ def GenerateDirectedGraphLinks(subComponents: list, displayName: str, parentDisp
         for subComponent in subComponents:
             result = GenerateDirectedGraphLinks(subComponent.SubComponents, subComponent.Selector, displayName, tagName, sourceAttr, targetAttr)
             output = f"{output}{result}"
-    return output
-
-def GenerateDirectedGraph(projects: list, selector: str):
-    nodes = GenerateDirectedGraphNodes(projects, selector, True, "Node", "Id")
-    links = GenerateDirectedGraphLinks(projects, selector, "", "Link", "Source", "Target")
-    output = f"<DirectedGraph xmlns=\"http://schemas.microsoft.com/vs/2009/dgml\">\n"\
-      f"<Nodes>\n{nodes}</Nodes>\n"\
-      f"<Links>\n{links}</Links>\n"\
-      "</DirectedGraph>"
     return output
 
 # find all files recursively under the current folder that ends with *.component.ts
@@ -90,17 +84,26 @@ for selector1 in compHash:
                 compHash[selector2].IsRoot = False # If selector2 has been found in a template then it is not root
     f.close()
 
+nodes = ""
+links = ""
 for selector in compHash:
     if compHash[selector].IsRoot == True:
         print(f"Found root: {selector}")
-        directedGraph = GenerateDirectedGraph(compHash[selector].SubComponents, selector)
-        outputFilename = f"ReadMe-ProjectStructure-{selector}.dgml"
-        print(f"Generating directed graph (dgml) for root:  {selector}, filename: {outputFilename}")
-        file = open(outputFilename, "w")
-        file.write(
-            f"<?xml version='1.0' encoding='utf-8'?>\n"\
-            f"{directedGraph}\n"
-        )
-        file.close()
+        nodes = nodes + GenerateDirectedGraphNodes(compHash[selector].SubComponents, selector, True, True, "Node", "Id")
+        links = links + GenerateDirectedGraphLinks(compHash[selector].SubComponents, selector, "", "Link", "Source", "Target")
         print()
 
+outputFilename = f"ReadMe-ProjectStructure.dgml"
+print(f"Generating directed graph (dgml) to file: {outputFilename}")
+file = open(outputFilename, "w")
+file.write(
+    f"<?xml version='1.0' encoding='utf-8'?>\n"\
+    f"<DirectedGraph GraphDirection=\"TopToBottom\" Layout=\"ForceDirected\" ZoomLevel=\"-1\" xmlns=\"http://schemas.microsoft.com/vs/2009/dgml\">\n"\
+    f"<Nodes>\n{nodes}</Nodes>\n"\
+    f"<Links>\n{links}</Links>\n"\
+    "<Categories>\n"\
+    "  <Category Id=\"RootComponent\" Label=\"Root component\" Background=\"#FF00AA00\" IsTag=\"True\" />\n"\
+    "</Categories>"\
+    "</DirectedGraph>\n"
+)
+file.close()
