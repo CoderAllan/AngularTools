@@ -17,8 +17,7 @@ class Component:
 def findComponents(componentFilenames: list) -> dict:
     compHash = {}
     for componentFilename in componentFilenames:
-        if ("node_modules" not in componentFilename and
-                "index.ts" not in componentFilename):
+        if ("node_modules" not in componentFilename and "index.ts" not in componentFilename):
             componentDefinitionFound = False
             currentComponent = Component(componentFilename, "", "", [], True)
             componentFile = open(componentFilename)
@@ -28,12 +27,10 @@ def findComponents(componentFilenames: list) -> dict:
                 if match:
                     componentDefinitionFound = True
                 if componentDefinitionFound:
-                    match = re.match(r".*templateUrl:.+/(.+)'",
-                                     line, re.IGNORECASE)
+                    match = re.match(r".*templateUrl:.+/(.+)'", line, re.IGNORECASE)
                     if match:
                         currentComponent.TemplateFilename = os.path.join(os.path.dirname(componentFilename), match.group(1))
-                    match = re.match(r".*selector:.+'(.+)'",
-                                     line, re.IGNORECASE)
+                    match = re.match(r".*selector:.+'(.+)'", line, re.IGNORECASE)
                     if match:
                         currentSelector = match.group(1)
                         currentSelector = currentSelector.replace("[", "")
@@ -99,7 +96,7 @@ def addNode(element, nodeElement, attribute='Id'):
     for node in element.childNodes:
         if (type(node) is minidom.Element and
             node.hasAttribute(attribute) and
-                node.getAttribute(attribute).lower() == nodeElement.getAttribute(attribute).lower()):
+            node.getAttribute(attribute).lower() == nodeElement.getAttribute(attribute).lower()):
             nodeAlreadyAdded = True
     if not nodeAlreadyAdded:
         element.appendChild(nodeElement)
@@ -109,10 +106,10 @@ def addLinkNode(element: minidom.Element, source: str, target: str):
     nodeAlreadyAdded = False
     for node in element.childNodes:
         if (type(node) is minidom.Element and
-              node.hasAttribute("Source") and
-              node.hasAttribute("Target") and
-              node.getAttribute("Source").lower() == source.lower() and
-              node.getAttribute("Target").lower() == target.lower()):
+            node.hasAttribute("Source") and
+            node.hasAttribute("Target") and
+            node.getAttribute("Source").lower() == source.lower() and
+            node.getAttribute("Target").lower() == target.lower()):
             nodeAlreadyAdded = True
     if not nodeAlreadyAdded:
         xmlDoc = minidom.Document()
@@ -122,7 +119,7 @@ def addLinkNode(element: minidom.Element, source: str, target: str):
         element.appendChild(linkElement)
 
 
-def GenerateDirectedGraphNodesXml(components: list, component: Component, isRoot: bool, nodesElement):
+def GenerateDirectedGraphNodesXml(components: list, component: Component, isRoot: bool, parentSelector: str, nodesElement):
     xmlDoc = minidom.Document()
     nodeElement = xmlDoc.createElement("Node")
     nodeElement.setAttribute("ComponentFilename", component.TsFilename)
@@ -136,15 +133,16 @@ def GenerateDirectedGraphNodesXml(components: list, component: Component, isRoot
         componentType = ""
     print(f"Found {componentType}component: {component.Selector}")
     addNode(nodesElement, nodeElement)
-    if (len(components) > 0):
+    if len(components) > 0:
         for subComponent in components:
-            GenerateDirectedGraphNodesXml(subComponent.SubComponents, subComponent, subComponent.IsRoot, nodesElement)
+            if parentSelector != subComponent.Selector:
+                GenerateDirectedGraphNodesXml(subComponent.SubComponents, subComponent, subComponent.IsRoot, component.Selector, nodesElement)
 
 
 def GenerateDirectedGraphLinksXml(subComponents: list, displayName: str, parentDisplayName: str, linksElement):
     if len(parentDisplayName) > 0:
         addLinkNode(linksElement, parentDisplayName, displayName)
-    if (len(subComponents) > 0):
+    if len(subComponents) > 0 and displayName != parentDisplayName:
         for subComponent in subComponents:
             GenerateDirectedGraphLinksXml(subComponent.SubComponents, subComponent.Selector, displayName, linksElement)
 
@@ -163,7 +161,7 @@ def addNodesAndLinks(root: minidom.Element, compHash: dict):
     for selector in compHash:
         component = compHash[selector]
         if component.IsRoot == True:
-            GenerateDirectedGraphNodesXml(component.SubComponents, component, True, nodesElement)
+            GenerateDirectedGraphNodesXml(component.SubComponents, component, True, component.Selector, nodesElement)
             GenerateDirectedGraphLinksXml(component.SubComponents, selector, "", linksElement)
 
 
@@ -211,40 +209,42 @@ def addStyles(root: minidom.Element):
     styleElement.appendChild(setterElement)
     addNode(stylesElement, styleElement, "GroupLabel")
 
+
 def main():
-  # find all files recursively under the current folder that ends with *.component.ts
-  componentFilenames = [os.path.join(dp, f) for dp, dn, filenames in os.walk(".") for f in filenames if f.endswith(".component.ts")]
+    # find all files recursively under the current folder that ends with *.component.ts
+    componentFilenames = [os.path.join(dp, f) for dp, dn, filenames in os.walk(".") for f in filenames if f.endswith(".component.ts")]
 
-  components = findComponents(componentFilenames)
-  scanComponentTemplates(components)
+    components = findComponents(componentFilenames)
+    scanComponentTemplates(components)
 
-  graphFilename = f"ReadMe-ProjectStructure.dgml"
-  xmlDocument: minidom.Document()
-  root: minidom.Element
+    graphFilename = f"ReadMe-ProjectStructure.dgml"
+    xmlDocument: minidom.Document()
+    root: minidom.Element
 
-  if os.path.exists(graphFilename):
-      try:
-          xmlDocument = minidom.parse(graphFilename)
-          print(f"Directed graph found {graphFilename}. Graph loaded and will be modified.")
-      except:
-          xmlDocument = createNewDirectedGraph()
-          print(f"Parsing of Directed graph {graphFilename} failed. Creating new graph.")
-      root = xmlDocument.childNodes[0]
-  else:
-      xmlDocument = createNewDirectedGraph()
-      root = xmlDocument.childNodes[0]
+    if os.path.exists(graphFilename):
+        try:
+            xmlDocument = minidom.parse(graphFilename)
+            print(f"Directed graph found {graphFilename}. Graph loaded and will be modified.")
+        except:
+            xmlDocument = createNewDirectedGraph()
+            print(f"Parsing of Directed graph {graphFilename} failed. Creating new graph.")
+        root = xmlDocument.childNodes[0]
+    else:
+        xmlDocument = createNewDirectedGraph()
+        root = xmlDocument.childNodes[0]
 
-  addNodesAndLinks(root, components)
-  addCategories(root)
-  addProperties(root)
-  addStyles(root)
+    addNodesAndLinks(root, components)
+    addCategories(root)
+    addProperties(root)
+    addStyles(root)
 
-  print(f"Generating directed graph (dgml) to file: {graphFilename}")
-  fileContent = str(xmlDocument.toprettyxml())
-  fileContent = re.sub(r"\n\s+\n", "\n", fileContent)
-  file = open(graphFilename, "w")
-  file.write(fileContent)
-  file.close()
+    print(f"Generating directed graph (dgml) to file: {graphFilename}")
+    fileContent = str(xmlDocument.toprettyxml())
+    fileContent = re.sub(r"\n\s+\n", "\n", fileContent)
+    file = open(graphFilename, "w")
+    file.write(fileContent)
+    file.close()
+
 
 if __name__ == "__main__":
     # execute only if run as a script
